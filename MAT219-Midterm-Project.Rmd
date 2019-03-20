@@ -1,0 +1,438 @@
+---
+title: "MAT219-Midterm-Project"
+author: "Rebecca Feaser"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r setup, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(error = TRUE)
+# load packages
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(fiftystater)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# load data
+knitr::opts_chunk$set(error = TRUE)
+collegedata <- read_csv("Midterm_Data.csv", col_types = cols(
+  MN_EARN_WNE_MALE0_P10 = col_double(), MN_EARN_WNE_MALE1_P10 = col_double(),
+  MN_EARN_WNE_MALE1_P6 = col_double(), MN_EARN_WNE_MALE0_P6 = col_double()
+  ), 
+  na = c("NA", "NULL")) %>%
+  rename(
+    Agriculture = PCIP01,
+    NaturalResourcesConservation = PCIP03,
+    Architecture = PCIP04,
+    GenderCulturalStudies = PCIP05,
+    CommunicationJournalism = PCIP09,
+    CommunicationTechnology = PCIP10,
+    ComputerScience = PCIP11,
+    CulinaryServices = PCIP12,
+    Education = PCIP13,
+    Engineering = PCIP14,
+    EngineeringTechnologies = PCIP15,
+    ForeignLanguagesLiteraturesLinguistics = PCIP16,
+    HumanFamilyConsumerSciences = PCIP19,
+    LegalProfessions = PCIP22,
+    EnglishLanguageAndLiterature = PCIP23,
+    LiberalArtsAndSciencesGeneralHumanities = PCIP24,
+    LibraryScience = PCIP25,
+    BiologicalAndBiomedicalSciences = PCIP26,
+    MathematicsAndStatistics = PCIP27,
+    MilitaryTechnologiesAndAppliedSciences = PCIP29,
+    MultiInterdisciplinaryStudies = PCIP30,
+    ParksRecreationLeisureFitnessStudies = PCIP31,
+    PhilosophyReligiousStudies = PCIP38,
+    TheologyReligiousVocations = PCIP39,
+    PhysicalSciences = PCIP40,
+    ScienceTechnologiesTechnicians = PCIP41,
+    Psychology = PCIP42,
+    HomelandSecurityLawEnforcementFirefightingRelated = PCIP43,
+    PublicAdministrationAndSocialServices = PCIP44,
+    SocialSciences = PCIP45,
+    ConstructionTrades = PCIP46,
+    MechanicAndRepairTechnologiesTechnicians = PCIP47,
+    PrecisionProduction = PCIP48,
+    TransportationAndMaterialsMoving = PCIP49,
+    VisualAndPerformingArts = PCIP50,
+    HealthProfessionsAndRelatedPrograms = PCIP51,
+    BusinessManagementMarketingAndRelatedServices = PCIP52,
+    History = PCIP54,
+    MTenYrMeanEarning = MN_EARN_WNE_MALE0_P10,
+    FTenYrMeanEarning = MN_EARN_WNE_MALE1_P10,
+    MSixYrMeanEarning = MN_EARN_WNE_MALE1_P6,
+    FSixYrMeanEarning = MN_EARN_WNE_MALE0_P6
+  )
+
+#'x' is the column of a data.frame that holds 2 digit state codes
+stateFromLower <- function(x) {
+# read 52 state codes into local variable [includes DC (Washington D.C.                                                 and PR (Puerto Rico)]
+  st.codes <- data.frame(
+    state = as.factor(c(
+      "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA",
+      "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME",
+      "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM",
+      "NV", "NY", "OH", "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN",
+      "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY"
+    )),
+    full = as.factor(c(
+      "alaska", "alabama", "arkansas", "arizona", "california", "colorado",
+      "connecticut", "district of columbia", "delaware", "florida", "georgia",
+      "hawaii", "iowa", "idaho", "illinois", "indiana", "kansas", "kentucky",
+      "louisiana", "massachusetts", "maryland", "maine", "michigan", "minnesota",
+      "missouri", "mississippi", "montana", "north carolina", "north dakota",
+      "nebraska", "new hampshire", "new jersey", "new mexico", "nevada",
+      "new york", "ohio", "oklahoma", "oregon", "pennsylvania", "puerto rico",
+      "rhode island", "south carolina", "south dakota", "tennessee", "texas",
+      "utah", "virginia", "vermont", "washington", "wisconsin",
+      "west virginia", "wyoming"
+    ))
+  )
+  # create an nx1 data.frame of state codes from source column
+  st.x <- data.frame(state = x)
+  # match source codes with codes from 'st.codes' local variable and                                                      use to return the full state name
+  refac.x <- st.codes$full[match(st.x$state, st.codes$state)]
+  # return the full state names in the same order in which they appeared                                                  in the original source
+  return(refac.x)
+}
+#resource:
+#https://favorableoutcomes.wordpress.com/2012/10/19/create-an-r-function-to-
+#convert-state-codes-to-full-state-name/
+
+```
+
+```{r}
+#reduced dataframe with desired variables
+reduced <- collegedata %>%
+  select(
+    UNITID, INSTNM, CITY, STABBR, LONGITUDE, LATITUDE, ADM_RATE, HIGHDEG, Agriculture,
+    NaturalResourcesConservation, Architecture, GenderCulturalStudies, 
+    CommunicationJournalism,CommunicationTechnology, ComputerScience, CulinaryServices, 
+    Education, Engineering, EngineeringTechnologies, 
+    ForeignLanguagesLiteraturesLinguistics, HumanFamilyConsumerSciences, 
+    LegalProfessions, EnglishLanguageAndLiterature,
+    LiberalArtsAndSciencesGeneralHumanities, LibraryScience, 
+    BiologicalAndBiomedicalSciences, MathematicsAndStatistics, 
+    MilitaryTechnologiesAndAppliedSciences, 
+    MultiInterdisciplinaryStudies, ParksRecreationLeisureFitnessStudies, 
+    PhilosophyReligiousStudies, TheologyReligiousVocations, PhysicalSciences, 
+    ScienceTechnologiesTechnicians, Psychology, 
+    HomelandSecurityLawEnforcementFirefightingRelated,
+    PublicAdministrationAndSocialServices, SocialSciences, ConstructionTrades, 
+    MechanicAndRepairTechnologiesTechnicians, PrecisionProduction, 
+    TransportationAndMaterialsMoving, 
+    VisualAndPerformingArts, HealthProfessionsAndRelatedPrograms, 
+    BusinessManagementMarketingAndRelatedServices, History, MTenYrMeanEarning, 
+    FTenYrMeanEarning, MSixYrMeanEarning, FSixYrMeanEarning, CONTROL, TUITIONFEE_IN, 
+    TUITIONFEE_OUT
+  ) %>%
+  filter(!STABBR %in% c("PR", "VI", "AS", "FM", "GU", "MP", "PW", "MH"))
+
+#adds a column of the state names spelled out instead of abbreviated
+reduced$Region <- stateFromLower(reduced$STABBR)
+```
+
+## Initial Questions
+
+1.  Which states have the highest/lowest tuition (in state and out of state) for 4 year, public colleges?
+
+2.  What are the degrees most students are graduating with at 4 year, public colleges?
+
+3.  Do males or females make more when they graduate from 4 year, public colleges?
+
+I chose to focus every question on 4 year, public universities in order to get the best average on all of our data (private schools and trade schools can greatly influence factors such as cost and earnings after graduation).  I also chose only to focus on the 50 states of the US and DC, thus excluding any US territories that had been included in the data.
+
+## Exploratory Analysis
+
+###1.  Which states have the highest/lowest tuition (in state and out of state) for 4 year, public colleges?
+
+I was not too surprised to learn that Virginia has the highest out-of-state tuition cost on average as this has been reported on by several articles including US News.  I based this question off of the findings of this news article (https://www.cbsnews.com/news/the-most-expensive-state-university-systems/) and was very happy to find that my answers were fairly similar to CBS's reportings.  In fact, most of the states that they had for the top 10 most expensive and inexpensive state university systems for residents and non-residents lined up with our results! I also found that to go out-of-state an individual is going to pay on average 250% more than if they stayed in state!
+
+```{r}
+tuition <- reduced %>%
+  select(
+    UNITID, INSTNM, CITY, STABBR, LONGITUDE, LATITUDE, ADM_RATE, HIGHDEG,
+    CONTROL, TUITIONFEE_IN, TUITIONFEE_OUT, Region
+  )
+
+# Top 10 least expensive in-state tuition states
+tuition %>%
+  filter(!is.na(TUITIONFEE_IN) & HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(LeastResidentTuition = mean(TUITIONFEE_IN)) %>%
+  arrange(desc(LeastResidentTuition)) %>%
+  top_n(-10, LeastResidentTuition)
+
+# Top 10 most expensive in-state tuition states
+tuition %>%
+  filter(!is.na(TUITIONFEE_IN) & HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(MostResidentTuition = mean(TUITIONFEE_IN)) %>%
+  arrange(desc(MostResidentTuition)) %>%
+  top_n(10, MostResidentTuition)
+
+# Top 10 least expensive out-of-state tuition states
+tuition %>%
+  filter(!is.na(TUITIONFEE_OUT) & HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(LeastNonResidentTuition = mean(TUITIONFEE_OUT)) %>%
+  arrange(desc(LeastNonResidentTuition)) %>%
+  top_n(-10, LeastNonResidentTuition)
+
+# Top 10 most expensive out-of-state tuition states
+tuition %>%
+  filter(!is.na(TUITIONFEE_OUT) & HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(MostNonResidentTuition = mean(TUITIONFEE_OUT)) %>%
+  arrange(desc(MostNonResidentTuition)) %>%
+  top_n(10, MostNonResidentTuition)
+
+# Side by side comparison
+tuition %>%
+  filter(!is.na(TUITIONFEE_IN) & !is.na(TUITIONFEE_OUT) & HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(ResidentTuition = mean(TUITIONFEE_IN), 
+            NonResidentTuition = mean(TUITIONFEE_OUT), 
+            PrcntIncreaseResidentToNon = (NonResidentTuition/ResidentTuition)*100)
+
+```
+
+
+###2. What are the degrees most students are graduating with at 4 year, public universities?
+Unsurprisingly, the degree most students graduate with is a Business degree (including Marketing and Management).  I filtered for a percent lower than 75% for students in a major as these are specialized, 4 year colleges, and I was trying to look for colleges that offer several degrees instead of only three or four (we also did not want these large percentages to influence the overall averages for majors and drag them upwards).  What was most surprising is that the most common degree in Maine is engineering. I tried to research what could be causing such a large number of engineering degrees in Maine (even lowering our Percent variable that controls the number of graduates a major can have to 50%), and I could not find a logical reason as to why (the best article we could find is linked here:  http://www.mainebiz.biz/article/20180129/NEWS01/180129949/umaine-system-'pathways'-program-addresses-demand-for-engineers). 
+
+```{r}
+#filtered out NA data
+majors <- reduced %>%
+  filter(!is.na(Agriculture | NaturalResourcesConservation | Architecture |
+    GenderCulturalStudies | CommunicationJournalism |
+    CommunicationTechnology | ComputerScience | CulinaryServices |
+    Education | Engineering | EngineeringTechnologies |
+    ForeignLanguagesLiteraturesLinguistics |
+    HumanFamilyConsumerSciences | LegalProfessions |
+    EnglishLanguageAndLiterature | LiberalArtsAndSciencesGeneralHumanities |
+    LibraryScience | BiologicalAndBiomedicalSciences |
+    MathematicsAndStatistics | MilitaryTechnologiesAndAppliedSciences |
+    MultiInterdisciplinaryStudies | ParksRecreationLeisureFitnessStudies |
+    PhilosophyReligiousStudies | TheologyReligiousVocations | PhysicalSciences |
+    ScienceTechnologiesTechnicians | Psychology |
+    HomelandSecurityLawEnforcementFirefightingRelated |
+    PublicAdministrationAndSocialServices | SocialSciences | ConstructionTrades |
+    MechanicAndRepairTechnologiesTechnicians | PrecisionProduction |
+    TransportationAndMaterialsMoving | VisualAndPerformingArts |
+    HealthProfessionsAndRelatedPrograms |
+    BusinessManagementMarketingAndRelatedServices | History)) %>%
+  gather(Major, Percent, Agriculture:History)
+
+majors %>%
+  group_by(STABBR, Major) %>%
+  filter(Percent < .9 & CONTROL == 1 & HIGHDEG == 4) %>%
+  summarise(mean = mean(Percent)) %>%
+  filter(mean == max(mean)) %>%
+  ungroup() %>%
+  group_by(Major) %>%
+  summarise(n = n())
+
+# top majors in 50 states + DC
+topdegrees <- majors %>%
+  group_by(Region, Major) %>%
+  filter(Percent < .75 & CONTROL == 1 & HIGHDEG == 4) %>%
+  summarise(mean = mean(Percent)) %>%
+  filter(mean == max(mean))
+
+# mapping of the 50 states
+ggplot(topdegrees, aes(map_id = Region)) +
+  # map points to the fifty_states shape data
+  geom_map(aes(fill = Major), map = fifty_states, color = "black") +
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  theme_void() +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  fifty_states_inset_boxes()
+```
+
+
+###3. Do males or females make more when they graduate (from 4 year, public colleges)?
+As expected, males made more than females sooner after graduation (6 years) by roughly $6,000. However what was really surprising to find was that 10 years after graduation, females make more than males, both in median and on average, by roughly $12,000.  Maybe females went on to pursue higher education more than males...?  This definitely calls for some further exploration.
+
+```{r}
+earnings <- reduced %>%
+  select(
+    UNITID, INSTNM, CITY, STABBR, LONGITUDE, LATITUDE, ADM_RATE,
+    HIGHDEG, MTenYrMeanEarning, FTenYrMeanEarning, MSixYrMeanEarning,
+    FSixYrMeanEarning, CONTROL
+  )
+
+# Mean Salary
+earnings %>%
+  filter(!is.na(MTenYrMeanEarning & FTenYrMeanEarning &
+    MSixYrMeanEarning & FSixYrMeanEarning)) %>%
+  filter(HIGHDEG == 4 & CONTROL == 1) %>%
+  summarise(
+    MaleSixYrMean = mean(MSixYrMeanEarning),
+    FemaleSixYrMean = mean(FSixYrMeanEarning),
+    MaleTenYrMean = mean(MTenYrMeanEarning),
+    FemaleTenYrMean = mean(FTenYrMeanEarning)
+  )
+
+# Median Salary
+earnings %>%
+  filter(!is.na(MTenYrMeanEarning & FTenYrMeanEarning &
+    MSixYrMeanEarning & FSixYrMeanEarning)) %>%
+  filter(HIGHDEG == 4 & CONTROL == 1) %>%
+  summarise(
+    MaleSixYrMedian = median(MSixYrMeanEarning),
+    FemaleSixYrMedian = median(FSixYrMeanEarning),
+    MaleTenYrMedian = median(MTenYrMeanEarning),
+    FemaleTenYrMedian = median(FTenYrMeanEarning)
+  )
+```
+
+
+## Refined/Revised Questions
+I would like to start out by saying a large part of our revisions/refinement were done while answering our original questions.  When I didn't get data that I liked, I looked to simplify the questions immediately until the data was easy to work with.  One of the best examples of this is Question #2 in which I went from looking at the top degrees from all colleges (quickly realizing this included trade/nursing schools and the likes which is why we only took colleges with a percent less than .9) to examining simply public colleges that offer four year degrees.  However, I have made a few slight revisions/refinements below.
+
+1. What are the top 20 most expensive out-of-state tuition 4 year public schools and top 20 most expensive in-state tuition 4 year public schools (mapping with green in state and orange out of state)?
+
+2.  What are the degrees most students are graduating with at 4 year, private colleges?
+
+3. Do females or males graduating from public colleges that offer four year degrees make more money (an attempt to help with skewness by eliminating private schools and trimming the mean)?
+
+
+
+## Additional Analysis
+
+###1. What are the top 20 most expensive out-of-state tuition 4 year public schools and top 20 most expensive in-state tuition 4 year public schools (mapping with green in state and orange out of state)?
+It was almost funny to find that while California did not make our top 10 list for states with the most expensive out-of-state tuition that it did have 9 out of the top 20 most expensive out-of-state tuition colleges (8 of these 9 were branches of the University of California).  It was also kind of surprising to find how many of the most expensive in-state tuition colleges belonged to Pennsylvania (mainly branches of Penn State).  I believe that this shows that you are also paying for the brand name of the college you are going to, and not simply the education. 
+
+```{r}
+# top 20  most expensive in state tuition, public, 4 year colleges
+top_twenty_in_state <- tuition %>%
+  filter(!is.na(TUITIONFEE_IN) & CONTROL == 1 & HIGHDEG == 4) %>%
+  top_n(20, TUITIONFEE_IN) 
+
+# top 20 most expensive out of state tuition, public, 4 year colleges
+top_twenty_out_of_state <- tuition %>%
+  filter(!is.na(TUITIONFEE_OUT) & CONTROL == 1 & HIGHDEG == 4) %>%
+  top_n(20, TUITIONFEE_OUT)
+
+# map of top 20 most expensive in-state tuition and out-of-state tuition, public, 4 year, colleges
+ggplot(tuition, aes(map_id = Region)) +
+  # map points to the fifty_states shape data
+  geom_map(map = fifty_states, color = "black") +
+  geom_point(data = top_twenty_in_state, aes(LONGITUDE, LATITUDE), color = "green") +
+  geom_point(data = top_twenty_out_of_state, aes(LONGITUDE, LATITUDE), color = "orange") +
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  theme_void() +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  labs(title = "Top 20 Highest In-state & Out-of-state Tuition Public, Four Year Colleges",x = "", y = "") +
+  fifty_states_inset_boxes()
+```
+
+###2.  What are the degrees most students are graduating with at 4 year, private nonprofit colleges?
+This question showed similar results to 4 year, public colleges as we would have expected considering how generic a business degree was classified in the data (it included management and marketing degrees).  However, I was surprised to find that Wyoming did not have any degree as its top private college degree, and upon further research we found that Wyoming actually only has one private, 4 year college, Wyoming Catholic College.  Wyoming Catholic College has no majors, minors, specialized degrees, or graduate programs, but instead gives graduating students the degree of Bachelor of Arts in Liberal Arts (hence its exclusion from our data set).  In addition if you change the college from private non-profit to private for-profit (change CONTROL to 3), I found that Montana, North Dakota, Wyoming, and Alaska all do not have 4 year, private for-profit colleges (tuition is too expensive for these types of schools and residents can't afford it maybe?).
+
+```{r}
+# table of top degrees across 50 states + DC
+majors %>%
+  group_by(STABBR, Major) %>%
+  filter(Percent < .9 & CONTROL == 2 & HIGHDEG == 4) %>%
+  summarise(mean = mean(Percent)) %>%
+  filter(mean == max(mean)) %>%
+  ungroup() %>%
+  group_by(Major) %>%
+  summarise(n = n())
+
+# top degrees in 50 states + DC
+topdegrees <- majors %>%
+  group_by(Region, Major) %>%
+  filter(Percent < .9 & CONTROL == 2 & HIGHDEG == 4) %>%
+  summarise(mean = mean(Percent)) %>%
+  filter(mean == max(mean))
+
+# mapping of the 50 states
+ggplot(topdegrees, aes(map_id = Region)) +
+  # map points to the fifty_states shape data
+  geom_map(aes(fill = Major), map = fifty_states, color = "black") +
+  expand_limits(x = fifty_states$long, y = fifty_states$lat) +
+  coord_map() +
+  theme_void() +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  labs(x = "", y = "") +
+  fifty_states_inset_boxes()
+```
+
+
+
+###3. Do females or males graduating from public colleges that offer four year degrees make more money (an attempt to help with skewness by eliminating private schools and trimming the mean)?
+No matter how hard I trimmed the data, I always came to the results that although males make more than females 6 years after graduation, after 10 years, females on average make $12,000 more than males.  In fact, males on average only made roughly $2,000 more 10 years after graduation from a public, 4 year college than they did 6 yeares after graduation from a public, 4 year college.  Some extraneous variables that could be included in the dataset and influencing the results include whether these individuals sought and received higher degrees (masters and PhDs), incorrect income reporting by the university or alumni to the university, and some real go-getters graduating from certain universities (Bill Gates?  Oprah?  a bunch of celebrities?).  From our conclusion, we are pretty happy to be females.
+
+```{r}
+#mean earnings for males/females across 50 states + DC
+earnings %>%
+  filter(!is.na(MTenYrMeanEarning & FTenYrMeanEarning &
+    MSixYrMeanEarning & FSixYrMeanEarning) &
+    HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(
+    MaleTenYrMean = mean(MTenYrMeanEarning, trim = 0.1),
+    FemaleTenYrMean = mean(FTenYrMeanEarning, trim = 0.1),
+    MaleSixYrMean = mean(MSixYrMeanEarning, trim = 0.1),
+    FemaleSixYrMean = mean(FSixYrMeanEarning, trim = 0.1)
+  )
+
+# mean earnings on average
+earnings %>%
+  filter(!is.na(MTenYrMeanEarning & FTenYrMeanEarning &
+    MSixYrMeanEarning & FSixYrMeanEarning) &
+    HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(
+    MaleTenYrMean = mean(MTenYrMeanEarning, trim = 0.1),
+    FemaleTenYrMean = mean(FTenYrMeanEarning, trim = 0.1),
+    MaleSixYrMean = mean(MSixYrMeanEarning, trim = 0.1),
+    FemaleSixYrMean = mean(FSixYrMeanEarning, trim = 0.1)
+  )
+
+# boxplot of male/female mean earnings for 50 States + DC with top and bottom 10% trimmed off
+earnings %>%
+  filter(!is.na(MTenYrMeanEarning & FTenYrMeanEarning &
+    MSixYrMeanEarning & FSixYrMeanEarning)) %>%
+  filter(HIGHDEG == 4 & CONTROL == 1) %>%
+  group_by(STABBR) %>%
+  summarise(
+    Male_6 = mean(MSixYrMeanEarning, trim = 0.1),
+    Female_6 = mean(FSixYrMeanEarning, trim = 0.1),
+    Male_10 = mean(MTenYrMeanEarning, trim = 0.1),
+    Female_10 = mean(FTenYrMeanEarning, trim = 0.1)
+  ) %>%
+  gather(GenderTime, MeanSalary, Male_6:Female_10) %>%
+  separate(GenderTime, c("Gender", "YearsGraduated"), sep = "_") %>%
+  ggplot(aes(Gender, MeanSalary, fill = YearsGraduated)) +
+  geom_boxplot() +
+  labs("center",
+    title = "Mean Salary Boxplot",
+    x = "Gender",
+    y = "Mean Salary",
+    fill = "Years since Graduation"
+  )
+```
+
+
+## Summary
+When I first was given the dataset, I quickly came to the conclusion that I wanted to focus solely on the US states and not the territories as we wanted to do some state comparisons (state pride).  In addition, the territories had so very few colleges that they did not contribute to the overall project as well as I liked.  In order to determine our questions, I looked at both what a graduating high school student might want to know about a college and what I, as a college student, might want to know about college structures.  Thus, I narrowed down our questions to three topics:  tuition costs, most populated degrees, and earnings after college.  In addition to make my data uniform, I initially chose to focus on public colleges offering four year degrees as private for-profit colleges would drive up the average price of tuition for a state, and trade schools that offer only special degrees could skew our percentages for major counts.
+
+Initially, I simply wanted to see which states had the least and most expensive in-state/out-of-state tuition, and our findings matched up with that of different news articles which was rather cool (Virginia’s out of state tuition is known to be notoriously high, and our data agreed!).  However, I went a step further and found just how much it costs a student from out-of-state on average in comparison to a resident of that state.  Nonresidents pay on average 250% more for tuition than students out of state!  This leads to the question of why are we charging our own citizens from different states so much more when they already go out of their own way to go to colleges in a different state?  Upon further exploration of this question, I mapped the top 20 most expensive in-state and out-of-state tuition colleges to get a general idea of where they are located and found that most of the schools lie either on the east or west coast.  California in particular was odd in that it contained 9 of the most expensive out-of-state tuition colleges but did not even break top 10 out of all the states for the most expensive out-of-state tuition on average.
+
+Furthermore, I wanted to see what majors students graduated with the most as it seems that most common degree is a business degree (looking at our own college as a prime example).  The data was rough to wrangle in as every variable was labeled a weird combination of letters and numbers, but the results were well worth it.  I narrowed my data to colleges whose students in a certain major were less than 90% in order to weed out any trade specific schools that could possibly influence the state’s average as to most common degree.  Forty-two out of fifty-one possible options (50 states + DC) had a most common degree of business.  While this answer, followed by Health Professions, were the most common, what was most surprising was the fact that most common degree in Maine was engineering!  Apparently, Maine has a shortage of trained engineers, and so colleges are offering incentive programs in order to attract students to engineering majors and meet market demands.  I further investigated this question by looking at private non-profit and private for-profit colleges and found similar results of business being the most common degree across the board.  However, I also found that Wyoming has neither private non-profit nor for-profit colleges, and Alaska, North Dakota, and Montana do not have private for-profit colleges either leading us to wonder if students from these areas are so little in number/unable to afford a private college that they cannot afford to exist in these areas.  Wyoming, Alaska, and Montana do have the least expensive resident tuition, and Wyoming and North Dakota have the least expensive nonresident tuition as well.  The maps for all these cases illustrate the most common degree in each state which allows the reader to quickly identify the most common degrees across all 50 states.
+
+Finally, I chose to examine whether males or females make more after graduating from 4 year, public universities by state on average.  I constantly hear about a pay gap as males tend to make more money than females on average, but our data happened to show otherwise.  Males 6 years after graduation made $6000 more on average than females, but 10 years after graduation, roles reversed and females out earned men by roughly $12,000 on average!  In fact, males made only a little over $1,000 more in 10 years after graduation as opposed to 6 years!  We thought that surely this data had to be wrong, so we decided to investigate further and trim the top and bottom 10% in order to get rid of any outliers and then ran the same test.  The results were the same!  As shown by the boxplot, females out earned males by roughly $12,000, 10 years after graduation.  I will note that the female plot, after having been graduated for 10 years, does appear right skewed, so there are a few numbers pulling up this mean.  Even without them, I do believe that it appears that females earn more than males several years after graduation.  Do more females get their masters/PhD than males or do more males switch to a different career field several years after graduation?  Extraneous variables are surely contributing to this difference, but no amount of trim fixed the idea that females out earn males.  Go figure! 
